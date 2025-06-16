@@ -98,42 +98,53 @@ def load_zoo(filename="zoo_data.txt"):
     zoo = Zoo()
     try:
         with open(filename, 'r', encoding='utf-8') as f:
-            lines = f.read().split("--------\n")  # Разделяем на секции
-            for section in lines:
-                if "Животные" in section:
-                    # Парсим животное
-                    lines_animal = section.strip().split('\n')[1:]  # Пропускаем заголовок
-                    if len(lines_animal) < 3:
-                        continue
-                    name = lines_animal[0].split(': ')[1]
-                    age = int(lines_animal[1].split(': ')[1])
-                    animal_type = lines_animal[2].split(': ')[1]
-                    if animal_type == "Bird":
-                        wingspan = float(lines_animal[3].split(': ')[1])
-                        zoo.add_animal(Bird(name, age, wingspan))
-                    elif animal_type == "Mammal":
-                        has_fur = lines_animal[3].split(': ')[1].lower() == "true"
-                        zoo.add_animal(Mammal(name, age, has_fur))
-                    elif animal_type == "Reptile":
-                        scale_color = lines_animal[3].split(': ')[1]
-                        zoo.add_animal(Reptile(name, age, scale_color))
-                elif "Сотрудники" in section:
-                    # Парсим сотрудника
-                    lines_emp = section.strip().split('\n')[1:]  # Пропускаем заголовок
-                    if len(lines_emp) < 2:
-                        continue
-                    name = lines_emp[0].split(': ')[1]
-                    role = lines_emp[1].split(': ')[1]
-                    if role == "ZooKeeper":
-                        zoo.add_employee(ZooKeeper(name))
-                    elif role == "Veterinarian":
-                        zoo.add_employee(Veterinarian(name))
+            mode = None  # "animal" или "employee"
+            animal_data = {}
+            employee_data = {}
+            for line in f:
+                line = line.strip()
+                if line == "":
+                    continue
+                if line == "Животные:":
+                    mode = "animal"
+                    continue
+                elif line == "Сотрудники:":
+                    mode = "employee"
+                    continue
+                elif line == "--------":
+                    # Конец объекта
+                    if mode == "animal":
+                        name = animal_data["Имя"]
+                        age = int(animal_data["Возраст"])
+                        typ = animal_data["Тип"]
+                        if typ == "Bird":
+                            wingspan = float(animal_data["Размах крыльев"])
+                            zoo.add_animal(Bird(name, age, wingspan))
+                        elif typ == "Mammal":
+                            has_fur = animal_data["Шерсть"].lower() == "true"
+                            zoo.add_animal(Mammal(name, age, has_fur))
+                        elif typ == "Reptile":
+                            scale_color = animal_data["Цвет чешуи"]
+                            zoo.add_animal(Reptile(name, age, scale_color))
+                        animal_data = {}
+                    elif mode == "employee":
+                        name = employee_data["Имя"]
+                        role = employee_data["Должность"]
+                        if role == "ZooKeeper":
+                            zoo.add_employee(ZooKeeper(name))
+                        elif role == "Veterinarian":
+                            zoo.add_employee(Veterinarian(name))
+                        employee_data = {}
+                    continue
+                # Наполняем словарь данных
+                key, value = line.split(": ", 1)
+                if mode == "animal":
+                    animal_data[key] = value
+                elif mode == "employee":
+                    employee_data[key] = value
         return zoo
     except FileNotFoundError:
         return Zoo()
-
-
-
 
 
 if __name__ == "__main__":
@@ -168,3 +179,7 @@ if __name__ == "__main__":
 
     # Сохранение состояния зоопарка
     save_zoo(my_zoo)
+
+    new_zoo = load_zoo()
+    print("Животных загружено:", len(new_zoo.animals))
+    print("Сотрудников загружено:", len(new_zoo.employees))
